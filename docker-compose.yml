@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  rag-api-service:
+
+    build: .
+
+    container_name: my-rag-container
+
+    ports:
+      - "8000:8000"
+      
+    env_file:
+      - ./.env
+      
+
+    volumes:
+      - ./data:/app/data:ro
+      - ./chroma_db_store:/app/chroma_db_store
