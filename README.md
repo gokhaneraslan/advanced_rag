@@ -140,26 +140,3 @@ You can easily configure the models and paths used in the pipeline by editing th
 *   `RERANKER_MODEL`
 *   `LLM_PROVIDER` and `LLM_MODEL`
 *   `DATA_DIR` and `VECTOR_STORE_DIR`
-
-## 📁 Project Structure
-
-```
-├── .github/workflows/ci.yml # GitHub Actions CI Pipeline
-├── data/                    # Directory for your source documents
-├── chroma_db_store/         # Persistent vector store
-├── src/                     # Main application source code
-│   ├── __init__.py
-│   ├── chains.py            # RAG chain and LLM initialization
-│   ├── data_processing.py   # Document loading and chunking
-│   └── retrieval.py         # Retriever creation and logic
-├── tests/                   # Integration tests
-│   ├── __init__.py
-│   └── test_integration.py
-├── .env                     # Environment variables (not committed)
-├── .dockerignore
-├── config.py                # Project configuration
-├── docker-compose.yml       # Docker service definition
-├── Dockerfile               # Docker image definition
-├── main.py                  # FastAPI application
-└── requirements.txt         # Python dependencies
-```
