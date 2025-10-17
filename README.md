@@ -109,7 +109,8 @@ curl -X 'POST' \
 
 Use this endpoint to ask questions about your documents.
 
-**`curl` Example:**```bash
+**`curl` Example:**
+```bash
 curl -X 'POST' \
   'http://127.0.0.1:8000/query' \
   -H 'Content-Type: application/json' \
@@ -142,7 +143,6 @@ You can easily configure the models and paths used in the pipeline by editing th
 
 ## 📁 Project Structure
 
-```
 .
 ├── .github/workflows/ci.yml # GitHub Actions CI Pipeline
 ├── data/                    # Directory for your source documents
@@ -162,4 +162,4 @@ You can easily configure the models and paths used in the pipeline by editing th
 ├── Dockerfile               # Docker image definition
 ├── main.py                  # FastAPI application
 └── requirements.txt         # Python dependencies
-```
+
