@@ -1,6 +1,6 @@
 # Advanced RAG Pipeline API
 
-[![CI Pipeline](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/actions/workflows/ci.yml)
+[![CI Pipeline](https://github.com/gokhaneraslan/advanced_rag/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/actions/workflows/ci.yml)
 [![Python Version](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -64,7 +64,7 @@ Docker and Docker Compose are required to run this project locally.
 
 **1. Clone the Repository:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+git clone https://github.com/gokhaneraslan/advanced_rag.git
 cd YOUR_REPO_NAME
 ```
 
