@@ -143,7 +143,7 @@ You can easily configure the models and paths used in the pipeline by editing th
 
 ## 📁 Project Structure
 
-.
+```
 ├── .github/workflows/ci.yml # GitHub Actions CI Pipeline
 ├── data/                    # Directory for your source documents
 ├── chroma_db_store/         # Persistent vector store
@@ -162,4 +162,4 @@ You can easily configure the models and paths used in the pipeline by editing th
 ├── Dockerfile               # Docker image definition
 ├── main.py                  # FastAPI application
 └── requirements.txt         # Python dependencies
-
+```
