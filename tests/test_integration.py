@@ -7,11 +7,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 
 from langchain_huggingface import HuggingFaceEmbeddings
+from ..src.chains import initialize_llm, create_rag_chain
+from ..src.data_processing import load_documents_from_directory, split_text
 
-from src.chains import initialize_llm, create_rag_chain
-from src.data_processing import load_documents_from_directory, split_text
-
-from src.retrieval import (
+from ..src.retrieval import (
     create_or_load_chroma_retriever, 
     create_bm25_retriever, 
     create_ensemble_retriever,
