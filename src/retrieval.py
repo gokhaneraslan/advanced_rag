@@ -13,8 +13,8 @@ from langchain_community.retrievers import BM25Retriever
 from langchain_core.retrievers import BaseRetriever
 
 from langchain.retrievers import ContextualCompressionRetriever
-from langchain.document_transformers import LongContextReorder
-from langchain.document_transformers import EmbeddingsRedundantFilter
+from langchain_community.document_transformers import LongContextReorder
+from langchain_community.document_transformers import EmbeddingsRedundantFilter
 from langchain.retrievers.document_compressors import CrossEncoderReranker
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
