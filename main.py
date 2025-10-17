@@ -66,7 +66,7 @@ def run_pipeline():
     rag_chain = create_rag_chain(final_retriever, llm)
 
     print("\n--- Ready to Query ---")
-    query = "What is the primary objective of Project Starlight?"
+    query = "What is Semantic Analysis?"
     
     response = rag_chain.invoke({"input": query})
     
