@@ -269,9 +269,11 @@ def test_error_handling():
     assert history == []
     print("✅ Invalid session handled correctly")
     
-    # Test invalid split method
+    # Test invalid split method - need to provide at least one dummy document
+    from langchain_core.documents import Document
+    dummy_doc = [Document(page_content="test", metadata={})]
     with pytest.raises(ValueError):
-        split_text([], method="invalid_method")
+        split_text(dummy_doc, method="invalid_method")
     print("✅ Invalid split method handled correctly")
 
 
