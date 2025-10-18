@@ -1,19 +1,48 @@
 version: '3.8'
 
 services:
-  rag-api-service:
-
+  rag-api:
     build: .
-
-    container_name: my-rag-container
-
+    container_name: rag-api-container
+    restart: unless-stopped
+    
     ports:
       - "8000:8000"
-      
+    
     env_file:
-      - ./.env
-      
-
+      - .env
+    
+    environment:
+      - LOG_LEVEL=INFO
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - MAX_MEMORY_MESSAGES=10
+      - RETRIEVAL_TOP_K=5
+      - RERANKER_TOP_N=3
+    
     volumes:
+      # Mount data directory (read-only for initial documents)
       - ./data:/app/data:ro
-      - ./chroma_db_store:/app/chroma_db_store
+      
+      # Mount vector store (read-write for persistence)
+      - ./vector_store:/app/vector_store
+      
+      # Mount memory database (read-write for persistence)
+      - ./conversation_memory.db:/app/conversation_memory.db
+      
+      # Mount logs directory (read-write)
+      - ./logs:/app/logs
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    networks:
+      - rag-network
+
+networks:
+  rag-network:
+    driver: bridge

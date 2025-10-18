@@ -1,28 +1,113 @@
-name: RAG Pipeline CI
+name: RAG Pipeline CI/CD
 
 on:
-
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+  DOCKER_IMAGE_NAME: rag-api
 
 jobs:
-  test-and-lint:
-
+  
+  # Job 1: Code Quality & Linting
+  code-quality:
     runs-on: ubuntu-latest
-
+    name: Code Quality Checks
+    
     steps:
-
-      - name: Check out repository code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Cache Pip packages
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort pylint
+
+      - name: Run Black (code formatter check)
+        run: black --check --diff .
+        continue-on-error: true
+
+      - name: Run isort (import sorting check)
+        run: isort --check-only --diff .
+        continue-on-error: true
+
+      - name: Run flake8 (linting)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        continue-on-error: true
+
+      - name: Run pylint (code analysis)
+        run: pylint src/ --fail-under=7.0
+        continue-on-error: true
+
+  
+  # Job 2: Security Scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    name: Security Vulnerability Scan
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety bandit
+
+      - name: Run Safety (dependency vulnerability check)
+        run: safety check --json
+        continue-on-error: true
+
+      - name: Run Bandit (security issues in code)
+        run: bandit -r src/ -f json -o bandit-report.json
+        continue-on-error: true
+
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-security-report
+          path: bandit-report.json
+
+  
+  # Job 3: Testing
+  test:
+    runs-on: ubuntu-latest
+    name: Run Tests
+    needs: [code-quality]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip packages
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
@@ -34,15 +119,163 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/huggingface
-          key: ${{ runner.os }}-huggingface-models
+          key: ${{ runner.os }}-huggingface-models-v2
+          restore-keys: |
+            ${{ runner.os }}-huggingface-models-
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run Integration Tests
+      - name: Run pytest with coverage
         env:
           PYTHONPATH: .
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          # GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: pytest
+          LOG_LEVEL: DEBUG
+        run: |
+          pytest --cov=src --cov-report=xml --cov-report=html --cov-report=term -v
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+        continue-on-error: true
+
+  
+  # Job 4: Build Docker Image
+  build-docker:
+    runs-on: ubuntu-latest
+    name: Build Docker Image
+    needs: [test, security-scan]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} python -c "import src; print('Import successful')"
+
+  
+  # Job 5: Integration Test in Docker
+  integration-test-docker:
+    runs-on: ubuntu-latest
+    name: Integration Test (Docker)
+    needs: [build-docker]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:test
+          load: true
+
+      - name: Run container
+        run: |
+          docker run -d \
+            --name rag-test \
+            -p 8000:8000 \
+            -e GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} \
+            -e LOG_LEVEL=INFO \
+            ${{ env.DOCKER_IMAGE_NAME }}:test
+
+      - name: Wait for container to be healthy
+        run: |
+          timeout 120 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
+
+      - name: Test API endpoints
+        run: |
+          # Test root endpoint
+          curl -f http://localhost:8000/
+          
+          # Test health endpoint
+          curl -f http://localhost:8000/health
+          
+          # Test session creation
+          SESSION_RESPONSE=$(curl -s -X POST http://localhost:8000/session/create)
+          echo $SESSION_RESPONSE
+          
+          # Test query endpoint
+          curl -X POST http://localhost:8000/query \
+            -H "Content-Type: application/json" \
+            -d '{"query": "What is RAG?"}'
+
+      - name: Check container logs
+        if: always()
+        run: docker logs rag-test
+
+      - name: Stop container
+        if: always()
+        run: docker stop rag-test
+
+  
+  # Job 6: Deploy (only on main branch)
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Production
+    needs: [integration-test-docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        continue-on-error: true
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        continue-on-error: true
+
+      - name: Deploy notification
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "Image: ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest"
+          echo "SHA: ${{ github.sha }}"

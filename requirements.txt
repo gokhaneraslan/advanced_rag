@@ -1,23 +1,48 @@
-langchain==0.3.27
-langchain-chroma==0.2.6
-langchain-community==0.3.31
-langchain-core==0.3.79
-langchain-experimental==0.3.4
-langchain-google-genai==2.1.12
-langchain-groq==0.3.8
-langchain-huggingface==0.3.1
-langchain-ollama==0.3.10
-langchain-openai==0.3.35
-langchain-pinecone==0.2.12
-torch
-pypdf==6.1.1
-chromadb==1.1.1
-rank-bm25==0.2.2
-scikit-learn==1.7.2
-python-dotenv==1.1.1
-reportlab==4.4.4
-sentence-transformers==5.1.1
+# Core LangChain
+langchain==0.3.13
+langchain-core==0.3.28
+langchain-community==0.3.13
+langchain-experimental==0.3.3
+
+# LLM Providers
+langchain-openai==0.2.14
+langchain-google-genai==2.0.6
+langchain-groq==0.2.2
+langchain-ollama==0.2.2
+
+# Vector Store & Embeddings
+langchain-chroma==0.1.4
+langchain-huggingface==0.1.2
+chromadb==0.5.23
+sentence-transformers==3.3.1
+
+# Text Processing
+pypdf==5.1.0
+python-docx==1.1.2
+
+# API & Web Framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
 python-multipart==0.0.20
-uvicorn==0.37.0
-fastapi==0.119.0
-pytest==8.4.2
+slowapi==0.1.9
+
+# Utilities
+python-dotenv==1.0.1
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+httpx==0.28.1
+
+# PDF Generation (for tests)
+reportlab==4.2.5
+
+# Monitoring & Logging (Optional but recommended)
+prometheus-client==0.21.1
+python-json-logger==3.2.1
+
+# Security
+cryptography==44.0.0

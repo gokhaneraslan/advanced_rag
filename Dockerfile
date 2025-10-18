@@ -1,29 +1,46 @@
-# Stage 1: Base Image
-# Use a slim Python image for a smaller final image size.
+# Multi-stage build for smaller final image
+FROM python:3.11-slim as builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Final stage
 FROM python:3.11-slim
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Set environment variables to prevent Python from writing .pyc files
-# and to ensure output is sent straight to the terminal
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy only the requirements file first to leverage Docker's layer caching.
-# This step will only be re-run if requirements.txt changes.
-COPY requirements.txt .
+# Copy installed packages from builder
+COPY --from=builder /root/.local /root/.local
 
-# Install dependencies
-# --no-cache-dir reduces the image size by not storing the pip cache.
-RUN pip install --no-cache-dir -r requirements.txt
+# Make sure scripts in .local are usable
+ENV PATH=/root/.local/bin:$PATH
 
-# Copy the rest of the application source code into the container
+# Copy application code
 COPY . .
 
-# Expose the port the app runs on
+# Create necessary directories
+RUN mkdir -p /app/data /app/vector_store /app/logs
+
+# Expose port
 EXPOSE 8000
 
-# The command to run the application using uvicorn.
-# We use --host 0.0.0.0 to make it accessible from outside the container.
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the application
+CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
