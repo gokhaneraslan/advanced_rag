@@ -5,6 +5,7 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -138,6 +139,7 @@ async def startup_event():
     logger.info("Step 1/6: Validating configuration...")
     try:
         config.validate_config()
+        logger.info("✅ Configuration validated")
     except ValueError as e:
         logger.error(f"Configuration validation failed: {e}")
         raise
@@ -157,10 +159,15 @@ async def startup_event():
     # Initialize models
     logger.info("Step 3/6: Initializing embedding and LLM models...")
     try:
+        # Set environment to suppress warnings
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+        os.environ['GRPC_ENABLE_FORK_SUPPORT'] = '0'
+        
         embedding_model = HuggingFaceEmbeddings(
             model_name=config.EMBEDDING_MODEL,
-            model_kwargs={'device': 'cpu'},  # Use 'cuda' if GPU available
-            encode_kwargs={'normalize_embeddings': True}
+            model_kwargs={'device': 'cpu'},
+            encode_kwargs={'normalize_embeddings': True},
+            show_progress=False  # Suppress progress bars
         )
         logger.info(f"✅ Embedding model loaded: {config.EMBEDDING_MODEL}")
         
@@ -496,9 +503,6 @@ def process_query(request_data: QueryRequest, request: Request = None):
         logger.error(f"Error processing query: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Query processing failed: {str(e)}")
 
-
-# Import Request for rate limiting
-from starlette.requests import Request
 
 if __name__ == "__main__":
     uvicorn.run(

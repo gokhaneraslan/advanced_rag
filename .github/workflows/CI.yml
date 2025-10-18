@@ -238,25 +238,57 @@ jobs:
             -v $(pwd)/logs:/app/logs \
             -e GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} \
             -e LOG_LEVEL=INFO \
+            -e TF_CPP_MIN_LOG_LEVEL=3 \
+            -e GRPC_ENABLE_FORK_SUPPORT=0 \
             ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
           
-          echo "Container started, waiting..."
-          sleep 5
+          echo "Container started"
+          sleep 10
+          
+          # Check if container is running
+          if ! docker ps | grep -q rag-test; then
+            echo "❌ Container exited immediately!"
+            docker logs rag-test
+            exit 1
+          fi
+          
+          echo "Container is running, proceeding to health check..."
 
       - name: Wait for container to be healthy
         run: |
           echo "Waiting for health check..."
-          for i in {1..40}; do
+          RETRY_COUNT=0
+          MAX_RETRIES=60
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            # Check if container is still running
+            if ! docker ps | grep -q rag-test; then
+              echo "❌ Container stopped unexpectedly!"
+              docker logs rag-test
+              exit 1
+            fi
+            
+            # Try health check
             if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-              echo "✅ Container is healthy after $i attempts!"
-              curl -s http://localhost:8000/health | python -m json.tool || true
+              echo "✅ Container is healthy after $((RETRY_COUNT * 3)) seconds!"
+              curl -s http://localhost:8000/health | python3 -m json.tool || true
               exit 0
             fi
-            echo "Attempt $i/40: Not ready yet..."
+            
+            echo "Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES: Not ready yet..."
+            
+            # Show progress - print last few log lines
+            if [ $((RETRY_COUNT % 10)) -eq 0 ] && [ $RETRY_COUNT -gt 0 ]; then
+              echo "--- Recent logs ---"
+              docker logs --tail 5 rag-test
+            fi
+            
             sleep 3
+            RETRY_COUNT=$((RETRY_COUNT + 1))
           done
           
-          echo "❌ Container failed to become healthy"
+          echo "❌ Container failed to become healthy after $((MAX_RETRIES * 3)) seconds"
+          echo "=== Full Container Logs ==="
           docker logs rag-test
           exit 1
 
