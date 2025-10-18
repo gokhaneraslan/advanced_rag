@@ -170,6 +170,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
+          load: true  # ✅ Load the image into local Docker
           tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -177,6 +178,17 @@ jobs:
       - name: Test Docker image
         run: |
           docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} python -c "import src; print('Import successful')"
+      
+      - name: Save Docker image as artifact
+        run: |
+          docker save ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} -o rag-api-image.tar
+      
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: rag-api-image.tar
+          retention-days: 1
 
   
   # Job 5: Integration Test in Docker

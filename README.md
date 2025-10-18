@@ -1,6 +1,6 @@
 # RAG Pipeline API with Conversation Memory
 
-[![CI/CD](https://github.com/yourusername/rag-pipeline/actions/workflows/CI.yml/badge.svg)](https://github.com/yourusername/rag-pipeline/actions)
+[![CI/CD](https://github.com/gokhaneraslan/advanced_rag/actions/workflows/CI.yml/badge.svg)](https://github.com/gokhaneraslan/advanced_rag/actions)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
 
 A production-ready Retrieval-Augmented Generation (RAG) system with conversation memory, built with LangChain, FastAPI, and modern MLOps practices.
@@ -84,8 +84,8 @@ A production-ready Retrieval-Augmented Generation (RAG) system with conversation
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/rag-pipeline.git
-cd rag-pipeline
+git clone https://github.com/gokhaneraslan/advanced_rag.git
+cd advanced_rag
 ```
 
 2. **Create virtual environment**
@@ -223,6 +223,21 @@ pytest --cov=src --cov-report=html
 pytest tests/test_integration.py::test_memory_system -v
 ```
 
+### Docker Integration Test
+```bash
+# Automated script (recommended)
+./scripts/test_docker.sh
+
+# Or use Makefile
+make docker-test
+
+# Manual Docker test
+make docker-build
+make docker-up
+curl http://localhost:8000/health
+make docker-down
+```
+
 ### Run Integration Test Script
 ```bash
 python tests/test.py
@@ -288,7 +303,7 @@ git push origin feature/new-feature
 ## 🗂️ Project Structure
 
 ```
-rag-pipeline/
+advanced_rag/
 ├── src/
 │   ├── chains.py              # LLM and RAG chain logic
 │   ├── data_processing.py     # Document loading and splitting

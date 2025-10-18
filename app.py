@@ -3,7 +3,7 @@ import tempfile
 import uvicorn
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -11,6 +11,7 @@ from typing import List, Dict, Any, Optional
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+
 import config
 from dotenv import load_dotenv
 from logging_config import setup_logging
@@ -507,4 +508,3 @@ if __name__ == "__main__":
         port=config.API_PORT,
         log_config=None  # We use our own logging configuration
     )
-    

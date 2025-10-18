@@ -19,8 +19,6 @@ langchain-huggingface==0.1.2
 chromadb==0.5.23
 sentence-transformers==3.3.1
 
-
-
 # Text Processing
 pypdf==5.1.0
 python-docx==1.1.2
@@ -36,6 +34,11 @@ python-dotenv==1.0.1
 pydantic==2.10.4
 pydantic-settings==2.7.0
 
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+httpx==0.28.1
 
 # Code Quality & Linting (Development)
 black==24.10.0
@@ -44,12 +47,6 @@ flake8==7.1.1
 pylint==3.3.2
 bandit==1.8.0
 safety==3.2.11
-
-# Testing
-pytest==8.3.4
-pytest-asyncio==0.24.0
-pytest-cov==6.0.0
-httpx==0.28.1
 
 # PDF Generation (for tests)
 reportlab==4.2.5

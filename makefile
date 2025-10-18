@@ -78,6 +78,11 @@ docker-down:
 docker-restart:
 	docker-compose restart
 
+docker-test:
+	@echo "Running Docker integration test..."
+	@chmod +x scripts/test_docker.sh
+	@./scripts/test_docker.sh
+
 logs:
 	docker-compose logs -f
 

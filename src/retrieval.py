@@ -1,5 +1,5 @@
-import logging
 import chromadb
+import logging
 from typing import List, Optional
 
 from langchain_chroma import Chroma
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_or_load_chroma_retriever(
-    persist_directory: str,
+    persist_directory: str, 
     collection_name: str,
     embeddings: HuggingFaceEmbeddings, 
     documents: Optional[List[Document]] = None,
@@ -251,4 +251,3 @@ def create_compression_retriever(
     except Exception as e:
         logger.error(f"Failed to create compression retriever: {e}")
         raise
-    
