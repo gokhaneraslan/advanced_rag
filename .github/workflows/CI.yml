@@ -161,33 +161,46 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
 
-      - name: Build Docker image
+      - name: Build Docker image (without load)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: false
-          load: true  # ✅ Load the image into local Docker
+          outputs: type=docker,dest=/tmp/rag-api-image.tar
           tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Load Docker image
+        run: |
+          docker load --input /tmp/rag-api-image.tar
+          docker images
 
       - name: Test Docker image
         run: |
           docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} python -c "import src; print('Import successful')"
       
-      - name: Save Docker image as artifact
-        run: |
-          docker save ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} -o rag-api-image.tar
-      
       - name: Upload Docker image artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-image
-          path: rag-api-image.tar
+          path: /tmp/rag-api-image.tar
           retention-days: 1
 
   
@@ -200,56 +213,104 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
+      
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
         with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: ${{ env.DOCKER_IMAGE_NAME }}:test
-          load: true
+          name: docker-image
+      
+      - name: Load Docker image
+        run: |
+          docker load --input rag-api-image.tar
+          docker images
+
+      - name: Create test directories
+        run: |
+          mkdir -p data logs vector_store
 
       - name: Run container
         run: |
           docker run -d \
             --name rag-test \
             -p 8000:8000 \
+            -v $(pwd)/data:/app/data:ro \
+            -v $(pwd)/vector_store:/app/vector_store \
+            -v $(pwd)/logs:/app/logs \
             -e GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} \
             -e LOG_LEVEL=INFO \
-            ${{ env.DOCKER_IMAGE_NAME }}:test
+            ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+          
+          echo "Container started, waiting..."
+          sleep 5
 
       - name: Wait for container to be healthy
         run: |
-          timeout 120 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
+          echo "Waiting for health check..."
+          for i in {1..40}; do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "✅ Container is healthy after $i attempts!"
+              curl -s http://localhost:8000/health | python -m json.tool || true
+              exit 0
+            fi
+            echo "Attempt $i/40: Not ready yet..."
+            sleep 3
+          done
+          
+          echo "❌ Container failed to become healthy"
+          docker logs rag-test
+          exit 1
 
       - name: Test API endpoints
         run: |
-          # Test root endpoint
-          curl -f http://localhost:8000/
+          set -e
           
-          # Test health endpoint
-          curl -f http://localhost:8000/health
+          echo "Testing root endpoint..."
+          curl -f http://localhost:8000/ || exit 1
+          echo "✅ Root endpoint OK"
           
-          # Test session creation
-          SESSION_RESPONSE=$(curl -s -X POST http://localhost:8000/session/create)
-          echo $SESSION_RESPONSE
+          echo "Testing health endpoint..."
+          curl -f http://localhost:8000/health || exit 1
+          echo "✅ Health endpoint OK"
           
-          # Test query endpoint
-          curl -X POST http://localhost:8000/query \
+          echo "Testing session creation..."
+          SESSION_JSON=$(curl -sf -X POST http://localhost:8000/session/create)
+          echo "Session response: $SESSION_JSON"
+          
+          SESSION_ID=$(echo "$SESSION_JSON" | python3 -c "import sys, json; print(json.load(sys.stdin)['session_id'])" 2>/dev/null || echo "")
+          
+          if [ -z "$SESSION_ID" ]; then
+            echo "❌ Failed to create session"
+            exit 1
+          fi
+          
+          echo "✅ Session created: $SESSION_ID"
+          
+          echo "Testing query endpoint..."
+          QUERY_RESPONSE=$(curl -sf -X POST http://localhost:8000/query \
             -H "Content-Type: application/json" \
-            -d '{"query": "What is RAG?"}'
+            -d "{\"query\": \"Hello, what can you help with?\", \"session_id\": \"$SESSION_ID\"}")
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Query endpoint OK"
+            echo "Response preview:"
+            echo "$QUERY_RESPONSE" | python3 -m json.tool | head -30 || echo "$QUERY_RESPONSE"
+          else
+            echo "❌ Query endpoint failed"
+            exit 1
+          fi
+          
+          echo ""
+          echo "🎉 All API endpoint tests passed!"
 
       - name: Check container logs
         if: always()
-        run: docker logs rag-test
+        run: |
+          echo "=== Container Logs (last 50 lines) ==="
+          docker logs --tail 50 rag-test
 
       - name: Stop container
         if: always()
-        run: docker stop rag-test
+        run: docker stop rag-test || true
 
   
   # Job 6: Deploy (only on main branch)
