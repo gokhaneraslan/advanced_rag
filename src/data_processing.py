@@ -178,3 +178,4 @@ def split_text(
     except Exception as e:
         logger.error(f"Text splitting failed: {e}")
         raise
+    

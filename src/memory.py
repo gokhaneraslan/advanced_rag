@@ -279,3 +279,4 @@ class ConversationMemory:
         except Exception as e:
             logger.error(f"Failed to get session info for {session_id}: {e}")
             return {"session_id": session_id, "error": str(e)}
+        

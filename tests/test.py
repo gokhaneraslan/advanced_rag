@@ -239,7 +239,8 @@ def main():
     print("--- Retrieved Context ---")
     
     for i, doc in enumerate(response["context"]):
-        print(f"Doc {i+1}: {doc.page_content[:150].replace('\n', ' ')}...")
+        docx = doc.page_content[:150].replace('\n', ' ')
+        print(f"Doc {i+1}: {docx}...")
         
     print("-" * 25)
     
@@ -255,3 +256,4 @@ def main():
 if __name__ == "__main__":
     import torch
     main()
+    

@@ -1,3 +1,6 @@
+rank-bm25==0.2.2
+scikit-learn==1.7.2
+
 # Core LangChain
 langchain==0.3.13
 langchain-core==0.3.28
