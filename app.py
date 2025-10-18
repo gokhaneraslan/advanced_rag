@@ -51,68 +51,59 @@ embedding_model = None
 final_retriever = None 
 
 
+load_dotenv()
 
-@app.on_event("startup")
-def startup_event():
-    """
-    Initializes the RAG pipeline when the FastAPI application starts.
-    This includes loading models, processing initial data, and building the retriever.
-    """
-    
-    global rag_chain, embedding_model, final_retriever
-    load_dotenv()
+print("--- Server Starting: Initializing RAG Pipeline ---")
 
-    print("--- Server Starting: Initializing RAG Pipeline ---")
+print("Step 1/5: Initializing models...")
 
-    print("Step 1/5: Initializing models...")
-    
-    embedding_model = HuggingFaceEmbeddings(model_name=config.EMBEDDING_MODEL)
-    
-    llm = initialize_llm(
-        provider=config.LLM_PROVIDER,
-        model_name=config.LLM_MODEL,
-        temperature=0
-    )
+embedding_model = HuggingFaceEmbeddings(model_name=config.EMBEDDING_MODEL)
 
-    print(f"Step 2/5: Loading and processing initial documents from '{config.DATA_DIR}'...")
+llm = initialize_llm(
+    provider=config.LLM_PROVIDER,
+    model_name=config.LLM_MODEL,
+    temperature=0
+)
+
+print(f"Step 2/5: Loading and processing initial documents from '{config.DATA_DIR}'...")
+
+documents = []
+
+if os.path.exists(config.DATA_DIR) and os.listdir(config.DATA_DIR):
+    documents = load_documents_from_directory(config.DATA_DIR)
+
+if not documents:
+    print("Warning: No initial documents found. The knowledge base is empty.")
+    chunks = []
     
-    documents = []
-    
-    if os.path.exists(config.DATA_DIR) and os.listdir(config.DATA_DIR):
-        documents = load_documents_from_directory(config.DATA_DIR)
-    
-    if not documents:
-        print("Warning: No initial documents found. The knowledge base is empty.")
-        chunks = []
-        
-    else:
-        chunks = split_text(documents, method="semantic", embeddings=embedding_model)
+else:
+    chunks = split_text(documents, method="semantic", embeddings=embedding_model)
 
 
-    print("Step 3/5: Building the retrieval system...")
-    
-    vector_retriever = create_or_load_chroma_retriever(
-        str(config.VECTOR_STORE_DIR),
-        config.COLLECTION_NAME,
-        embedding_model,
-        documents=chunks
-    )
-    
-    keyword_retriever = create_bm25_retriever(chunks)
-    
-    ensemble_retriever = create_ensemble_retriever([vector_retriever, keyword_retriever])
-    
-    final_retriever = create_compression_retriever(
-        ensemble_retriever,
-        embedding_model,
-        reranker_model_name=config.RERANKER_MODEL
-    )
+print("Step 3/5: Building the retrieval system...")
 
-    print("Step 4/5: Creating the RAG chain...")
-    
-    rag_chain = create_rag_chain(final_retriever, llm)
+vector_retriever = create_or_load_chroma_retriever(
+    str(config.VECTOR_STORE_DIR),
+    config.COLLECTION_NAME,
+    embedding_model,
+    documents=chunks
+)
 
-    print("Step 5/5: Pipeline ready. The server is now accepting requests.")
+keyword_retriever = create_bm25_retriever(chunks)
+
+ensemble_retriever = create_ensemble_retriever([vector_retriever, keyword_retriever])
+
+final_retriever = create_compression_retriever(
+    ensemble_retriever,
+    embedding_model,
+    reranker_model_name=config.RERANKER_MODEL
+)
+
+print("Step 4/5: Creating the RAG chain...")
+
+rag_chain = create_rag_chain(final_retriever, llm)
+
+print("Step 5/5: Pipeline ready. The server is now accepting requests.")
 
 
 
