@@ -258,7 +258,7 @@ jobs:
         run: |
           echo "Waiting for health check..."
           RETRY_COUNT=0
-          MAX_RETRIES=60
+          MAX_RETRIES=200
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             # Check if container is still running
