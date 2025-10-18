@@ -1,4 +1,5 @@
 import chromadb
+from chromadb.config import Settings
 import logging
 from typing import List, Optional
 
@@ -54,7 +55,7 @@ def create_or_load_chroma_retriever(
     """
 
     try:
-        client = chromadb.PersistentClient(path=persist_directory)
+        client = chromadb.PersistentClient(path=persist_directory, settings=Settings(anonymized_telemetry=False))
         existing_collections = [c.name for c in client.list_collections()]
         
         if collection_name in existing_collections:

@@ -384,6 +384,3 @@ docker-compose logs rag-api
 - FastAPI for the web framework
 - The open-source community
 
----
-
-**Made with ❤️ for production-ready RAG systems**
