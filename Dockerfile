@@ -33,7 +33,7 @@ ENV PATH=/root/.local/bin:$PATH
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p /app/data /app/vector_store /app/logs
+RUN mkdir -p /app/data /app/vector_store /app/memory /app/logs
 
 # Expose port
 EXPOSE 8000

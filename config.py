@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
 VECTOR_STORE_DIR = BASE_DIR / "vector_store"
-MEMORY_DB_PATH = BASE_DIR / "conversation_memory.db"
+MEMORY_DB_PATH = BASE_DIR / "memory" / "conversation_memory.db"
 LOG_DIR = BASE_DIR / "logs"
 COLLECTION_NAME = "my_rag_collection"
 

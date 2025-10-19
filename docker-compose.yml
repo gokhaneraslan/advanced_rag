@@ -28,7 +28,7 @@ services:
       - ./vector_store:/app/vector_store
       
       # Mount memory database (read-write for persistence)
-      - ./conversation_memory.db:/app/conversation_memory.db
+      - ./memory/conversation_memory.db:/app/memory/conversation_memory.db
       
       # Mount logs directory (read-write)
       - ./logs:/app/logs

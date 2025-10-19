@@ -235,6 +235,7 @@ jobs:
             -p 8000:8000 \
             -v $(pwd)/data:/app/data:ro \
             -v $(pwd)/vector_store:/app/vector_store \
+            -v $(pwd)/memory:/app/memory \
             -v $(pwd)/logs:/app/logs \
             -e GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} \
             -e LOG_LEVEL=INFO \
