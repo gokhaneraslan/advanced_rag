@@ -73,7 +73,6 @@ tests/test_memory.db
 .ipynb_checkpoints
 
 # Data files
-data/
 !data/.gitkeep
 
 # OS
